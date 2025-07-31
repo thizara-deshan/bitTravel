@@ -114,7 +114,7 @@ export default function ForgotPasswordPage() {
           const userRole = result.user?.role;
           switch (userRole) {
             case "SUPER_ADMIN":
-              router.push("/dashboard/admin");
+              router.push("/dashboard/super-admin");
               break;
             case "EMPLOYEE":
               router.push("/dashboard/employee");

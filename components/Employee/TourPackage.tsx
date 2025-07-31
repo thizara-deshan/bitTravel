@@ -126,7 +126,7 @@ function PackageCard({
     >
       <div className="relative">
         <Image
-          src={pkg.image}
+          src={pkg.image || "/logo.png"}
           alt={pkg.alt}
           width={600}
           height={400}

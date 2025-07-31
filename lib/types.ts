@@ -87,6 +87,7 @@ export enum BookingStatus {
   REJECTED = "REJECTED",
   CANCELLED = "CANCELLED",
   ASSIGNED = "ASSIGNED",
+  PAID = "PAID",
 }
 
 export enum AssignmentStatus {
@@ -108,6 +109,7 @@ export interface BaseBooking {
   totalAmount: number;
   status: BookingStatus;
   specialRequests?: string | null;
+  receipt?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

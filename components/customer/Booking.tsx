@@ -294,7 +294,8 @@ export default function Booking({
                           />
                         </FormControl>
                         <FormDescription>
-                          We will contact you for booking confirmation
+                          We will contact you for booking confirmation. please
+                          add your country code
                         </FormDescription>
                         <FormMessage />
                       </FormItem>

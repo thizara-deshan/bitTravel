@@ -21,6 +21,7 @@ import {
   Package,
   CheckCircle,
   XCircle,
+  Download,
 } from "lucide-react";
 
 import type { DetailedAssignedBooking } from "./AssignedBookings";
@@ -58,6 +59,7 @@ function BookingDetailView({ booking, onBack }: BookingDetailViewProps) {
         throw new Error("Failed to update booking status");
       }
 
+      window.location.reload(); // Reload the page to reflect changes
       const data = await response.json();
       console.log("Booking status updated:", data);
       onBack(); // Navigate back to the bookings list
@@ -75,6 +77,39 @@ function BookingDetailView({ booking, onBack }: BookingDetailViewProps) {
     }
   };
 
+  const handleDownloadReceipt = async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/bookings/${booking.booking.id}/download-receipt`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to download receipt");
+      }
+
+      // Create a blob from the response
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      // Create a temporary anchor element to trigger download
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = booking.booking.receipt || "receipt";
+      document.body.appendChild(a);
+      a.click();
+
+      // Clean up
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Error downloading receipt:", error);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "ACCEPTED":
@@ -83,6 +118,8 @@ function BookingDetailView({ booking, onBack }: BookingDetailViewProps) {
         return "bg-red-100 text-red-800 border-red-200";
       case "ASSIGNED":
         return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "PAID":
+        return "bg-purple-100 text-purple-800 border-purple-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
@@ -117,7 +154,8 @@ function BookingDetailView({ booking, onBack }: BookingDetailViewProps) {
         </div>
 
         {/* Action Buttons */}
-        {booking.booking.status === "ASSIGNED" && (
+        {(booking.booking.status === "ASSIGNED" ||
+          booking.booking.status === "PAID") && (
           <div className="flex gap-2">
             <Button
               onClick={() => setShowAcceptDialog(true)}
@@ -285,6 +323,26 @@ function BookingDetailView({ booking, onBack }: BookingDetailViewProps) {
                     <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
                       {booking.notes}
                     </p>
+                  </div>
+                </>
+              )}
+
+              {booking.booking.receipt && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">
+                      Payment Proof
+                    </p>
+                    <Button
+                      onClick={handleDownloadReceipt}
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download Receipt
+                    </Button>
                   </div>
                 </>
               )}

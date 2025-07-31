@@ -28,7 +28,7 @@ export function PackageDetailView({
       </div>
       <div className="relative w-full h-[40vh] lg:h-[75vh] mb-1">
         <Image
-          src={pkg.image}
+          src={pkg.image || "/logo.png"}
           alt={pkg.alt || "Package Image"}
           width={1924}
           height={1080}

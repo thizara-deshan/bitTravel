@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 
 import { Badge } from "@/components/ui/badge";
 
-import { Edit, Package, Trash2 } from "lucide-react";
+import { Edit, Package, Trash2, Upload } from "lucide-react";
 
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import { DetailedBooking } from "./Dashboard";
@@ -23,6 +23,8 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import ModifyBookingForm from "./ModifyBookingForm";
 
 export function BookingDetailView({
@@ -35,6 +37,9 @@ export function BookingDetailView({
   const [showModifyForm, setShowModifyForm] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const handleModifyBooking = () => {
     setShowModifyForm(true);
@@ -65,6 +70,75 @@ export function BookingDetailView({
       setShowDeleteDialog(false);
     }
   };
+
+  const handleReceiptUpload = async (
+    event: React.FormEvent<HTMLFormElement>
+  ) => {
+    event.preventDefault();
+    if (!selectedFile) {
+      setUploadError("Please select a file to upload");
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("receipt", selectedFile);
+
+      const response = await fetch(
+        `http://localhost:5000/api/bookings/${booking.id}/upload-receipt`,
+        {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to upload receipt");
+      }
+
+      // Reload the page to show updated booking status
+      window.location.reload();
+    } catch (error) {
+      console.error("Error uploading receipt:", error);
+      setUploadError(
+        error instanceof Error ? error.message : "Failed to upload receipt"
+      );
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "application/pdf",
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        setUploadError("Please select an image (JPEG, PNG, GIF) or PDF file");
+        return;
+      }
+
+      // Validate file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        setUploadError("File size must be less than 5MB");
+        return;
+      }
+
+      setSelectedFile(file);
+      setUploadError(null);
+    }
+  };
+
   if (showModifyForm) {
     return (
       <ModifyBookingForm
@@ -304,6 +378,75 @@ export function BookingDetailView({
               </Button>
             </CardContent>
           </Card>
+
+          {/* Wait for Assignment */}
+          {booking.status === "PENDING" && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Waiting for Assignment</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600">
+                  Your booking is currently pending. Please wait for it to be
+                  assigned to one of our employees. Once assigned, you will be
+                  able to upload your payment receipt.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Receipt Upload */}
+          {booking.status === "ASSIGNED" && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Upload className="w-5 h-5" />
+                  Upload Receipt
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600 mb-4">
+                  Please make payment to following bank account and upload the
+                  receipt here. Once uploaded, your booking status will change
+                  to
+                  <span className="font-semibold"> PAID</span>.
+                </p>
+                <p className="text-sm text-gray-600">Bank Account Details:</p>
+                <ul className="list-disc list-inside text-sm text-gray-600">
+                  <li>Account Name: BlueLanka pvt ltd</li>
+                  <li>Account Number: 8011387042</li>
+                  <li>Bank Name: Bank of Ceylon</li>
+                  <li>SWIFT Code: ABCDEFGH</li>
+                </ul>
+              </CardContent>
+              <CardContent>
+                <form onSubmit={handleReceiptUpload} className="space-y-3">
+                  <div>
+                    <Label htmlFor="receipt">Payment Receipt</Label>
+                    <Input
+                      id="receipt"
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.gif,.pdf"
+                      onChange={handleFileSelect}
+                      disabled={isUploading}
+                      className="mt-1"
+                    />
+                    {uploadError && (
+                      <p className="text-sm text-red-600 mt-1">{uploadError}</p>
+                    )}
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={!selectedFile || isUploading}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {isUploading ? "Uploading..." : "Upload Receipt"}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
       {/* Delete Confirmation Dialog */}
@@ -343,6 +486,8 @@ function getStatusColor(status: string) {
       return "bg-red-100 text-red-800 border-red-200";
     case "assigned":
       return "bg-blue-100 text-blue-800 border-blue-200";
+    case "paid":
+      return "bg-purple-100 text-purple-800 border-purple-200";
     default:
       return "bg-gray-100 text-gray-800 border-gray-200";
   }

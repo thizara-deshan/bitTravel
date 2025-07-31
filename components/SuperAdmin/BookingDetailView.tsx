@@ -12,6 +12,7 @@ import {
   DollarSign,
   FileText,
   UserCheck,
+  Download,
 } from "lucide-react";
 import { UnassignedBooking, AssignedBooking } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
@@ -27,6 +28,39 @@ export function BookingDetailView({
   const isAssigned = "employee" in booking;
   const bookingData = isAssigned ? booking.booking : booking;
   const assignedEmployee = isAssigned ? booking.employee : null;
+
+  const handleDownloadReceipt = async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/bookings/${bookingData.id}/download-receipt`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to download receipt");
+      }
+
+      // Create a blob from the response
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      // Create a temporary anchor element to trigger download
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = bookingData.receipt || "receipt";
+      document.body.appendChild(a);
+      a.click();
+
+      // Clean up
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Error downloading receipt:", error);
+    }
+  };
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
@@ -278,6 +312,29 @@ export function BookingDetailView({
                   </span>
                 </div>
               </div>
+
+              {/* Payment Receipt */}
+              {(bookingData.status === "PAID" ||
+                bookingData.status === "ACCEPTED") &&
+                bookingData.receipt && (
+                  <>
+                    <Separator />
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 mb-2">
+                        Payment Receipt
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={handleDownloadReceipt}
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download Receipt
+                      </Button>
+                    </div>
+                  </>
+                )}
             </CardContent>
           </Card>
 

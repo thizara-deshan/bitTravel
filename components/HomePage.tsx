@@ -17,7 +17,8 @@ function HomePage() {
               <h3 className="px-4 mt-6 text-lg leading-8 text-gray-600">
                 From the golden beaches to the misty mountains, experience the
                 heart of Sri Lanka with personalized tours that create
-                unforgettable memories.
+                unforgettable memories. register now and book your dream
+                vacation with us!
               </h3>
               <div className="mt-10 flex drop-shadow-lg items-center tex-sm justify-center gap-6">
                 <Link
